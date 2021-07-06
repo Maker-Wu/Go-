@@ -38,5 +38,15 @@ func main() {
 	s1 = append(s1, s2...)
 	fmt.Println(s1)					//[1 2 3 4 5 6 7]
 
+	//copy()函数复制切片
+	a2 := []int{1, 2, 3, 4, 5}
+	c2 := make([]int, 5, 5)
+	copy(c2, a2)
+	fmt.Println(a2)
+	fmt.Println(c2)
 
+	//从切片中删除元素
+	a3 := []int{31, 32, 33, 34, 35, 36, 37}
+	a3 = append(a3[:2], a3[3:]...)
+	fmt.Println(a3)
 }

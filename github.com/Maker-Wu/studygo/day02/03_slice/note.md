@@ -1,6 +1,5 @@
 #### append()方法为切片添加元素
-append()方法可以一次添加一个元素，可以一次添加多个元素，也可以添加另一个切片中的元素
-(后面加...)
+append()方法可以一次添加一个元素，可以一次添加多个元素，也可以添加另一个切片中的元素(后面加...)
 ```go
 func main(){
 	var s []int
@@ -10,9 +9,7 @@ func main(){
 	s = append(s, s2...)    // [1 2 3 4 5 6 7]
 }
 ```
-每个切片会指向一个底层数组，这个数组的容量够用就添加新增元素。当底层数组不能容纳新增的
-元素时，切片就会自动按照一定的策略进行“扩容”，此时该切片指向的底层数组就会更换。”扩容“
-操作往往发生在append()函数调用时，所以我们通常都需要用原变量接收append函数的返回值。
+每个切片会指向一个底层数组，这个数组的容量够用就添加新增元素。当底层数组不能容纳新增的元素时，切片就会自动按照一定的策略进行“扩容”，此时该切片指向的底层数组就会更换。”扩容“操作往往发生在append()函数调用时，所以我们通常都需要用原变量接收append函数的返回值。
 ```go
 func main(){
     //append()添加元素和切片扩容
@@ -40,3 +37,35 @@ func main(){
 
 append()函数将元素追加到切片的最后并返回该切片。
 切片numSlice的容量按照1，2，4，8，16这样的规则自动进行扩容，每次扩容后都是扩容前的2倍。
+
+#### 切片的扩容策略
+通过查看`$GOROOT/src/runtime/slice.go`源码，其中扩容相关的代码如下：
+```go
+newcap := old.cap
+doublecap := newcap + newcap
+if cap > doublecap {
+    newcap = cap
+} else {
+    if old.len < 1024 {
+        newcap = doublecap
+    } else {
+        // Check 0 < newcap to detect overflow
+        // and prevent an infinite loop.
+        for 0 < newcap && newcap < cap {
+            newcap += newcap / 4
+        }
+        // Set newcap to the requested cap when
+        // the newcap calculation overflowed.
+        if newcap <= 0 {
+            newcap = cap
+        }
+    }
+}
+```
+从上面的代码可以看出以下内容：
+
+- 首先判断，如果新申请容量(cap)大于2倍的旧容量(old.cap)，最终容量(newcap)就是新申请的容量(cap)。
+- 否则判断，如果旧切片的长度小于1024，则最终容量(newcap)就是旧容量(old.cap)的两倍，即（newcap=doublecap）
+- 否则判断，如果旧切片长度大于等于1024，则最终容量(newcap)从旧容量(old.cap)开始循环添加原来的1/4,即(newcap=old.cap,for {newcap += newcap/4}）知道最终容量大于等于新申请的容量，即(newcap >= cap)
+- 如果最终容量（cap）计算值溢出，则最终容量（cap）就是新申请容量（cap）。
+
