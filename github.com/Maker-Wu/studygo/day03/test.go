@@ -1,23 +1,54 @@
 package main
-import "fmt"
 
-type student struct {
+import (
+	"fmt"
+	"math/rand"
+)
+
+type Student struct {
+	ID int8
 	name string
-	age int
+	age int8
+	score float64
+}
+
+type Class struct {
+	Title string
+	Students []*Student
+}
+
+func NewClass(title string) *Class {
+	return &Class{
+		Title: title,
+		Students: make([]*Student, 0),
+	}
+}
+
+func (c *Class) AddStu(ID int8, name string, age int8, score float64) {
+	stu := Student{
+		ID: ID,
+		name: name,
+		age: age,
+		score: score,
+	}
+	c.Students = append(c.Students, &stu)
+}
+
+func (c *Class) ShowStu() {
+	for _, student := range c.Students {
+		fmt.Println(student)
+	}
 }
 
 func main() {
-	m := make(map[string]*student)
-	stus := []student{
-		{name: "小王子", age: 18},
-		{name: "娜扎", age: 23},
-		{name: "大王八", age: 9000},
+	class := NewClass("101")
+	fmt.Printf("%#v\n", class)
+	for i := 0; i < 10; i++ {
+		id := int8(i)
+		name := fmt.Sprintf("stu%02d", i)
+		age := int8(25)
+		score := rand.Float64()
+		class.AddStu(id, name, age, score)
 	}
-
-	for _, stu := range stus {
-		m[stu.name] = &stu
-	}
-	for k, v := range m {
-		fmt.Println(k, "=>", v.age, v.name)
-	}
+	class.ShowStu()
 }
