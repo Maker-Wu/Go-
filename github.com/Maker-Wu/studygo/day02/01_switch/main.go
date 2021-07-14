@@ -26,7 +26,7 @@ func main() {
 		fmt.Println("偶数")
 	}
 
-	// 分支还可以使用表达式
+	// 分支还可以使用表达式，这时switch语句后面不需要再跟变量
 	var age, _ = fmt.Sscan("请输入年龄：")
 	switch {
 	case age < 25:

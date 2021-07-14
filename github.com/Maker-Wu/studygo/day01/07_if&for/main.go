@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"unicode"
+)
 
 func main()  {
 	//if age > 18 {
@@ -43,4 +46,18 @@ func main()  {
 		}
 		fmt.Println()
 	}
+
+	// 判断字符串中汉字的数量
+	s1 := "Hello伍胜强"
+	var count int
+	for _, c := range s1 {
+		if unicode.Is(unicode.Han, c) {
+			count++
+		}
+	}
+	fmt.Printf("字符串中出现汉字的个数:%d\n", count)
+
+	// 回文判断
+	s2 := "上海自来水来自海上"
+	fmt.Println(s2[0])
 }

@@ -3,9 +3,12 @@ package main
 import "fmt"
 
 func main() {
-	// var 数组变量名 [元素数量]T
-	var a1 [3]bool
-	var a2 [4]bool
+	/*
+	var 数组变量名 [元素数量]T
+	数组的长度必须是常量，并且长度是数组类型的一部分
+	 */
+	var a1 [3]bool		//a1:[3]bool
+	var a2 [4]bool		//a1:[4]bool
 
 	fmt.Printf("a1:%T\n", a1)
 	fmt.Printf("a2:%T\n", a2)

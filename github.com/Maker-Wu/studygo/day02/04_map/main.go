@@ -14,7 +14,7 @@ func main() {
 	fmt.Println(scoreMap)							//map[小明:200 张三:100]
 	fmt.Println(scoreMap["小明"])					//200
 	fmt.Printf("type of a:%T\n", scoreMap)	//type of a:map[string]int
-	fmt.Println(scoreMap["小陈"])
+	fmt.Println(scoreMap["小陈"])					//0
 	// map也支持在声明的时候填充元素
 	userInfo := map[string]string{
 		"username": "沙河小王子",
@@ -41,6 +41,7 @@ func main() {
 	for k, v := range scoreMap {
 		fmt.Println(k, v)
 	}
+	delete(scoreMap, "沙河")		//删除不存在的key，则不做任何操作
 
 	// 元素为map类型的切片
 	var mapSlice = make([]map[string]string, 3)
