@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// 只读方式打开当前目录下的note.md文件
-	file, err := os.Open("./Maker-Wu/studygo/day04/04_file/note.md")		//返回一个*File和一个error
+	file, err := os.Open("./Maker-Wu/studygo/day04/04_file/值类型和引用类型.md")		//返回一个*File和一个error
 	if err != nil {
 		fmt.Println("open file failed!, err:", err)
 		return

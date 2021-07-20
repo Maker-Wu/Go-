@@ -1,9 +1,18 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
+
+var age = test()
+
+func test() int {
+	fmt.Println("test()...")
+	return 90
+}
+
+func init() {
+	fmt.Println("init()...")
+}
 
 func main() {
-	fmt.Printf("%T", 'H')
+	fmt.Println("main()...")
 }

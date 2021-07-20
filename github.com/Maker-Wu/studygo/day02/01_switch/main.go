@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	switch n := 3; n {
@@ -26,7 +28,7 @@ func main() {
 		fmt.Println("偶数")
 	}
 
-	// 分支还可以使用表达式，这时switch语句后面不需要再跟变量
+	// switch语句后面可以不跟变量，类似if-else分支来使用
 	var age, _ = fmt.Sscan("请输入年龄：")
 	switch {
 	case age < 25:
@@ -35,6 +37,40 @@ func main() {
 		fmt.Println("好好工作吧")
 	case age < 55:
 		fmt.Println("准备退休了")
+	}
 
+	var letter rune
+	fmt.Println("请输入一个字符")
+	fmt.Scanf("%c", &letter)
+	switch letter {
+	case 'a':
+		fmt.Println("星期一")
+	case 'b':
+		fmt.Println("星期二")
+	case 'c':
+		fmt.Println("星期三")
+	case 'e':
+		fmt.Println("星期四")
+	case 'f':
+		fmt.Println("星期五")
+	default:
+		fmt.Println("输入错误。。")
+	}
+
+	// type-switch来判断某个interface变量中实际指向的变量类型
+	var x interface{}
+	var y = 10.0
+	x = y
+	switch i := x.(type){
+	case nil:
+		fmt.Printf("type of x:%T\n", i)
+	case int:
+		fmt.Printf("type of x:%T\n", i)
+	case float64:
+		fmt.Printf("type of x:%T\n", i)
+	case func(int) float64:
+		fmt.Printf("type of x:%T\n", i)
+	case bool, string:
+		fmt.Printf("type of x:%T\n", i)
 	}
 }

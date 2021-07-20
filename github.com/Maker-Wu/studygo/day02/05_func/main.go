@@ -89,6 +89,17 @@ func makeSuffixFunc(suffix string) func(string) string {
 	}
 }
 
+// defer后面的语句入栈时，也会将相关值拷贝同时入栈
+func sum(n1, n2 int) int {
+	defer fmt.Println("ok1 n1 =", n1)	//ok1 n1 = 10
+	defer fmt.Println("ok2 n2 =", n2)	//ok2 n1 = 20
+	n1++
+	n2++
+	res := n1 + n2 //32
+	fmt.Println("ok3 res =", res)
+	return res
+}
+
 func main() {
 	res := intSum(10, 20)
 	fmt.Println(res)
@@ -145,4 +156,6 @@ func main() {
 
 	fmt.Println(jpgFunc("beautifulGirl"))			//beautifulGirl.jpg
 	fmt.Println(txtFunc("beautifulGirl"))			//beautifulGirl.txt
+
+	sum(10, 20)
 }

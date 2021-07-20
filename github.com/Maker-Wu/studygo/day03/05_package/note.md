@@ -73,11 +73,40 @@ func main() {
 
 #### init()初始化函数
 
-在Go语言程序执行时导入包语句会自动出发包内部`init`函数的调用。需要注意的是：`init`函数没有参数也没有返回值。`init`函数在程序运行时自动被调用执行，不能再代码中主动调用它。
+在Go语言程序执行时<font color='red'>导入包语句会自动触发包内部`init`函数的调用</font>。需要注意的是：`init`函数没有参数也没有返回值。`init`函数在程序运行时自动被调用执行，不能在代码中主动调用它。
 
 包初始化执行的顺序如下图所示：
 
 ![包中的init()执行时机](note.assets/init01.png)
+
+```go
+var age = test()
+
+func test() int {
+	fmt.Println("test()...")
+	return 90
+}
+
+func init() {
+	fmt.Println("init()...")
+}
+
+func main() {
+	fmt.Println("main()...")
+}
+```
+
+运行结果：
+
+```go
+test()...
+init()...
+main()...
+```
+
+
+
+
 
 不同文件`init()`函数执行顺序
 

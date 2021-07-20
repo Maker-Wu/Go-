@@ -48,10 +48,14 @@ func main() {
 
 	//copy()函数复制切片
 	a2 := []int{1, 2, 3, 4, 5}
-	c2 := make([]int, 5, 5)		//提前申请足够的空间
+	c2 := make([]int, 5, 5)		//提前申请足够的空间,
 	copy(c2, a2)
-	fmt.Println(a2)
-	fmt.Println(c2)
+	fmt.Println(a2)				//[1 2 3 4 5]
+	fmt.Println(c2)				//[1 2 3 4 5]
+
+	c3 := make([]int , 1)
+	copy(c3, a2)			//copy()不会自动扩容
+	fmt.Println(c3)				//[1]
 
 	//从切片中删除元素
 	a3 := []int{31, 32, 33, 34, 35, 36, 37}

@@ -65,7 +65,7 @@ type error interface {
 }
 ```
 
-error 有了一个签名为 Error() string 的方法。所有实现该接口的类型都可以当作一个错误类型。Error() 方法给出了错误的描述。
+error 有一个 Error() string 的方法。所有实现该接口的类型都可以当作一个错误类型。Error() 方法给出了错误的描述。
 fmt.Println 在打印错误时，会在内部调用 Error() string 方法来得到该错误的描述。上一节示例中的错误描述就是这样打印出的。
 
 

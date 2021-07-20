@@ -22,7 +22,7 @@ func timestampDemo2(timestamp int64) {
 // 将时间对象转换为时间戳
 func timestampDemo() {
 	now := time.Now()
-	timestamp1 := now.Unix()		//时间戳
+	timestamp1 := now.Unix()		//时间戳(秒)
 	timestamp2 := now.UnixNano()	//纳秒时间戳
 	fmt.Printf("current timestamp1:%v\n", timestamp1)
 	fmt.Printf("current timestamp2:%v\n", timestamp2)
@@ -38,6 +38,7 @@ func timeDemo() {
 	year := now.Year()
 	fmt.Printf("type of year:%T\n", year)	//type of year:int
 	month := now.Month()
+	fmt.Printf("type of month:%T\n", month)	//type of month:time.Month
 	day := now.Day()
 	hour := now.Hour()
 	minute := now.Minute()
@@ -101,5 +102,5 @@ func main() {
 	formatDemo()
 	formatDemo2()
 
-	fmt.Printf("程序执行时间：%d", time.Now().Sub(start).Nanoseconds())
+	fmt.Printf("程序执行时间：%.2f", time.Now().Sub(start).Seconds())
 }

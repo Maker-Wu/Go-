@@ -57,7 +57,15 @@ func main()  {
 	}
 	fmt.Printf("字符串中出现汉字的个数:%d\n", count)
 
-	// 回文判断
-	s2 := "上海自来水来自海上"
-	fmt.Println(s2[0])
+	// break-label
+	label2:
+	for i := 0; i < 4; i++ {
+		//label1:
+		for j := 0; j < 10; j++ {
+			if j == 2 {
+				break label2
+			}
+			fmt.Println("j =", j)
+		}
+	}
 }

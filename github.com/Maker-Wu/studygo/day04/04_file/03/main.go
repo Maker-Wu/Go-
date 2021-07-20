@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	content, err := ioutil.ReadFile("./Maker-Wu/studygo/day04/04_file/note.md")
+	content, err := ioutil.ReadFile("./Maker-Wu/studygo/day04/04_file/值类型和引用类型.md")
 	if err != nil {
 		fmt.Println("read file failed, err:", err)
 	}
