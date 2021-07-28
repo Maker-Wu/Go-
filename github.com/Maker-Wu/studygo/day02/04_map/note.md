@@ -1,5 +1,7 @@
 #### 按照指定顺序遍历map
 
+现在默认按照key值升序排列，`fmt.Println`输出是有序的，但`for-range`是无序遍历
+
 ```go
 func main() {
     // time.Now().UnixNano() 获取时间戳函数，单位纳秒

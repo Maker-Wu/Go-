@@ -30,6 +30,14 @@ func main() {
 		fmt.Println("查无此人")
 	}
 
+	value2, ok := scoreMap["伍胜强"]
+	if ok {
+		fmt.Println(value2)
+	} else {
+		fmt.Println(value2)		//0  map不存在指定key，则value为类型零值
+		fmt.Println("查无此人")
+	}
+
 	scoreMap["娜扎"] = 60
 	// 遍历map时的顺序与添加键值对的顺序无关
 	for k, v := range scoreMap {
@@ -41,7 +49,7 @@ func main() {
 	for k, v := range scoreMap {
 		fmt.Println(k, v)
 	}
-	delete(scoreMap, "沙河")		//删除不存在的key，则不做任何操作
+	delete(scoreMap, "沙河")		//删除不存在的key，则不做任何操作，也不会报错
 
 	// 元素为map类型的切片
 	var mapSlice = make([]map[string]string, 3)

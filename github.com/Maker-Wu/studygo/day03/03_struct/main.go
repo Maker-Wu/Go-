@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-// 结构体的定义
+// 结构体的定义，结构体是自定义数据类型
 type person struct {
 	name, city string
 	age int

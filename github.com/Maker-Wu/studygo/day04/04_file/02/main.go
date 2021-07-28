@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	file, err := os.Open("./Maker-Wu/studygo/day04/04_file/值类型和引用类型.md")
+	file, err := os.Open("./Maker-Wu/studygo/day04/04_file/read.txt")
 	if err != nil {
 		fmt.Println("open file failed, err:", err)
 		return
@@ -19,6 +19,7 @@ func main() {
 	for {
 		line, err := reader.ReadString('\n')  //注意是字符
 		if err == io.EOF{
+			// 最后一行没有换行符，会执行到这里
 			if len(line) != 0 {
 				fmt.Println(line)
 			}

@@ -38,6 +38,8 @@ func (d *Dog) wang() {
 	fmt.Printf("%s会汪汪汪~\n", d.name)
 }
 
+
+
 func main() {
 	user1 := User{
 		Name: "小王子",

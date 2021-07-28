@@ -7,6 +7,17 @@ import (
 	"os"
 )
 
+// 判断文件或目录是否存在
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	} else if os.IsNotExist(err) {
+		return false
+	}
+	return false
+}
+
 func writeFile() {
 	file, err := os.OpenFile("./read.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
@@ -22,11 +33,11 @@ func writeFile() {
 //bufio写入文件
 func bufioWriteFile() {
 	file, err := os.OpenFile("./read.txt", os.O_APPEND, 0666)
-	defer file.Close()
 	if err != nil {
 		fmt.Println("open file failed, err:", err)
 		return
 	}
+	defer file.Close()
 	writer := bufio.NewWriter(file)
 	for i := 0; i < 10; i++ {
 		writer.WriteString("hello沙河\n")
