@@ -2,18 +2,22 @@ package main
 
 import (
 	"flag"
-	"time"
+	"fmt"
 )
 
 func main() {
-	var name string
-	var age int
-	var married bool
-	var delay time.Duration
+	var user string
+	var pwd string
+	var host string
+	var port int
 
-	flag.StringVar(&name, "name", "张三", "姓名")
-	flag.IntVar(&age, "age", 18, "年龄")
-	flag.BoolVar(&married, "married", false, "婚否")
-	flag.DurationVar(&delay, "d", 0, "时间间隔")
 
+	flag.StringVar(&user, "u", "", "用户名")
+	flag.StringVar(&pwd, "pwd", "", "年龄")
+	flag.StringVar(&host, "h", "localhost", "主机名")
+	flag.IntVar(&port, "P", 3306, "端口号")
+
+	flag.Parse()
+	fmt.Printf("user=%v pwd=%v host=%v port=%v\n",
+		user, pwd, host, port)
 }
