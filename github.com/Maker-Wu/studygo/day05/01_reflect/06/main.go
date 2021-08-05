@@ -19,13 +19,6 @@ func reflectType(x interface{}) {
 func main() {
 	var a float32 = 3.14
 	reflectType(a)			//type:float32
-
-	var b = int8(10)
-	reflectType(b)			//type:int8
-
-	d := person{
-		name: "沙河小王子",
-		age: 18,
-	}
-	reflectType(d)			//type:main.person
+	var b int64 = 100
+	reflectType(b)			//type:int64
 }
