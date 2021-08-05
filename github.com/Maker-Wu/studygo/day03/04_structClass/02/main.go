@@ -49,7 +49,7 @@ func main() {
 			City: "威海",
 		},
 	}
-	fmt.Printf("user1=%#v\n", user1)	//user1=main.User{Name:"小王子", Gender:"男", Address:main.Address{Province:"山东", City:"威海"}}
+	fmt.Printf("user1=%#v\n", user1)	//user1=main.go.User{Name:"小王子", Gender:"男", Address:main.go.Address{Province:"山东", City:"威海"}}
 
 	// 访问匿名字段默认使用类型名作为字段名
 	fmt.Println(user1.Address.Province)

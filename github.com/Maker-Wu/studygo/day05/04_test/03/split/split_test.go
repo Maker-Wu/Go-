@@ -13,16 +13,19 @@ func TestSplit(t *testing.T) {
 		want []string
 	}
 
-	tests := []test{
-		{input: "a:b:c", sep: ":", want: []string{"a", "b", "c"}},
-		{input: "a:b:c", sep: ",", want: []string{"a:b:c"}},
-		{input: "沙河有沙又有河", sep: "沙", want: []string{"", "河有", "又有河"}},
+	tests := map[string]test{
+		"simple": {input: "a:b:c", sep: ":", want: []string{"a", "b", "c"}},
+		"wrong sep": {input: "a:b:c", sep: ",", want: []string{"a:b:c"}},
+		"more sep": {input: "abcd", sep: "bc", want: []string{"a", "d"}},
+		"leading sep": {input: "沙河有沙又有河", sep: "沙", want: []string{"", "河有", "又有河"}},
 	}
 
-	for _, test := range tests {
-		got := Split(test.input, test.sep)
-		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("expected:%v, got:%v\n", test.want, got)
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := Split(test.input, test.sep)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("expected:%v, got:%v\n", test.want, got)
+			}
+		})
 	}
 }

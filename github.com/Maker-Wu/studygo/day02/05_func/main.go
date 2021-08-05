@@ -116,7 +116,7 @@ func main() {
 	var c calculation							//声明一个calculaiton类型的变量c
 	c = intSum									//把intSum赋值给c
 	fmt.Printf("type of c:%T\n", intSum)	//type of c:func(int, int) int
-	fmt.Printf("type of c:%T\n", c)		//type of c:main.calculation
+	fmt.Printf("type of c:%T\n", c)		//type of c:main.go.calculation
 	fmt.Println(c(1, 2))						//3
 
 	f := intSum									//将函数intSum函数给变量f

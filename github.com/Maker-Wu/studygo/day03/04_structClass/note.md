@@ -14,7 +14,7 @@ func main() {
 	var m1 MyInt
 	m1.SayHello() //Hello, 我是一个int。
 	m1 = 100
-	fmt.Printf("%#v  %T\n", m1, m1) //100  main.MyInt
+	fmt.Printf("%#v  %T\n", m1, m1) //100  main.go.MyInt
 }
 ```
 
@@ -38,7 +38,7 @@ func main() {
 		"小王子",
 		18,
 	}
-	fmt.Printf("%#v\n", p1)        //main.Person{string:"北京", int:18}
+	fmt.Printf("%#v\n", p1)        //main.go.Person{string:"北京", int:18}
 	fmt.Println(p1.string, p1.int) //北京 18
 }
 ```

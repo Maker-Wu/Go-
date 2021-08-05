@@ -34,5 +34,5 @@ func main() {
 		fmt.Printf("json.Unmarshal failed, err:%v\n", err)
 		return
 	}
-	fmt.Printf("p2:%#v\n", p2)			//p2:main.Person{Name:"七米", Age:18, Weight:71.5}
+	fmt.Printf("p2:%#v\n", p2)			//p2:main.go.Person{Name:"七米", Age:18, Weight:71.5}
 }

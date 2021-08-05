@@ -8,7 +8,7 @@ p8 := &person{
 	"北京",
 	28,
 }
-fmt.Printf("p8=%#v\n", p8)//p8=&main.person{name:"沙河娜扎", city:"北京", age:28}}
+fmt.Printf("p8=%#v\n", p8)//p8=&main.go.person{name:"沙河娜扎", city:"北京", age:28}}
 ```
 
 使用这种格式初始化时，需要注意：

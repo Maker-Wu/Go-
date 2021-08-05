@@ -87,7 +87,7 @@ func sum(n1, n2, n3 int) int{
 //	return ret
 //}
 //
-//func main() {
+//func main.go() {
 //	x := 1
 //	y := 2
 //	defer calc("AA", x, calc("A", x, y))

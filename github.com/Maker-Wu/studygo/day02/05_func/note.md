@@ -52,7 +52,7 @@ c = add
 func main() {
 	var c calculation               // 声明一个calculation类型的变量c
 	c = add                         // 把add赋值给c
-	fmt.Printf("type of c:%T\n", c) // type of c:main.calculation
+	fmt.Printf("type of c:%T\n", c) // type of c:main.go.calculation
 	fmt.Println(c(1, 2))            // 像调用add一样调用c
 
 	f := add                        // 将函数add赋值给变量f1

@@ -14,5 +14,5 @@ func init() {
 }
 
 func main() {
-	fmt.Println("main()...")
+	fmt.Println("main.go()...")
 }
