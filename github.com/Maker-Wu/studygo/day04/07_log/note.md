@@ -27,9 +27,9 @@ func main() {
 编译并执行上面的代码会得到如下输出：
 
 ```bash
-2017/06/19 14:04:17 这是一条很普通的日志。
-2017/06/19 14:04:17 这是一条很普通的日志。
-2017/06/19 14:04:17 这是一条会触发fatal的日志。
+2017/06_socket/19 14:04:17 这是一条很普通的日志。
+2017/06_socket/19 14:04:17 这是一条很普通的日志。
+2017/06_socket/19 14:04:17 这是一条会触发fatal的日志。
 ```
 
 <font color='red'>logger会打印每条日志信息的日期、时间，默认输出到系统的标准错误。</font>Fatal系列函数会在写入日志信息后调用os.Exit(1)。Panic系列函数会在写入日志信息后panic。
@@ -122,6 +122,62 @@ func main() {
 将上面的代码编译执行之后，得到结果如下：
 
 ```bash
-<New>2017/06/19 14:06:51 main.go:34: 这是自定义的logger记录的日志。
+<New>2017/06_socket/19 14:06_socket:51 main.go:34: 这是自定义的logger记录的日志。
+```
+
+#### runtime.Caller
+
+```go
+func Caller(skip int) (pc uintptr, file string, line int, ok bool)
+```
+
+`runtime.Caller`能够拿到当前执行的文件名和行号，这个方法几乎所有的日志组件里都有使用。<font color='red'>实参`skip`为上溯的栈帧数，0表示`Caller`的调用者（`Caller`所在的调用栈）。</font>函数的返回值为调用栈标识符、带路径的完整文件名、该调用在文件中的行号。如果无法获得信息，ok会被设为false。
+
+##### 根据pc获取函数名
+
+根据返回的调用帧标识符`pc`，我们可以获取对应的函数名。
+
+需要用到一个函数和一个方法，签名如下：
+
+```go
+func FuncForPC(pc uintptr) *Func
+
+func (*Func) Name
+```
+
+`FuncForPC`返回一个调用栈标识符`pc`对应的调用栈的`*Func`；如果该调用栈标识符没有对应的调用栈，函数会返回`nil`。每一个调用栈必然是对某个函数的调用。
+`Name`返回该调用栈所调用的函数的名字。
+
+```go
+package main
+
+import (
+	"fmt"
+	"path"
+	"runtime"
+)
+
+func getInfo(skip int) (funcName, fileName string, lineNo int) {
+	pc, file, lineNo, ok := runtime.Caller(skip)
+	if !ok {
+		fmt.Println("runtime.Caller() failed")
+		return
+	}
+	funcName = runtime.FuncForPC(pc).Name()
+	fileName = path.Base(file) // Base函数返回路径的最后一个元素
+	return
+}
+
+func main() {
+	fmt.Println(getInfo(0))
+	fmt.Println(getInfo(1))
+}
+```
+
+输出：
+
+```go
+main.getInfo main.go 10
+main.main main.go 22
 ```
 

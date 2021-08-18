@@ -2,40 +2,17 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 )
 
-type Sayer interface {
-	Say()
-	Move()
-}
-
-type Mover interface {
-	Move()
-}
-
-type Animal interface {
-	Sayer
-	Mover
-	Eat()
-}
-
-type Dog struct {
-
-}
-
-func (d *Dog) Say() {
-	fmt.Println("Dog can wangwang~~")
-}
-
-func (d *Dog) Move() {
-	fmt.Println("Dog can run fast")
-}
-
-func (d *Dog) Eat() {
-	fmt.Println("Dog can eat much")
-}
-
 func main() {
-	var a Animal = &Dog{}
-	a.Move()
+	resp, err := http.Get("https://www.imooc.com")
+	if err != nil {
+		panic(err)
+		return
+	}
+	defer resp.Body.Close()
+	bytes, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("%s\n", bytes)
 }

@@ -1,10 +1,9 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 )
 
 func main() {
@@ -51,12 +50,7 @@ func main() {
 		return
 	}
 	defer file.Close()
-	writer := bufio.NewWriter(file)
-	for _, v := range sparseArr {
-		for _, chess := range v {
-			writer.WriteString(strconv.Itoa(chess) + "\t")
-		}
-		writer.WriteString("\n")
-	}
-	writer.Flush()
+
+	str1, err := json.Marshal(sparseArr)
+	file.WriteString(string(str1))
 }

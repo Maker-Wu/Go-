@@ -29,8 +29,6 @@ func main() {
 
 从上面的代码中我们可以发现，使用值接收者实现接口之后，不管是dog结构体还是结构体指针*dog类型的变量都可以赋值给该接口变量。因为Go语言中有对指针类型变量求值的语法糖，dog指针`fugui`内部会自动求值`*fugui`。
 
-
-
 ##### 指针接收者实现接口
 
 ```go
@@ -110,7 +108,7 @@ func show(a interface{}) {
 
 ##### 接口值
 
-接口类型变量除了静态类型之外还有动态类型，动态类型是由给接口类型变量赋值的具体值的类型来决定的，除了动态类型之外还有动态值。一个接口的值（简称接口值）是由<font color='red'>一个具体类型和具体类型的值</font>两部分组成的。这两部分分别称为接口的动态类型和动态值，之所以被称为动态类型，是因为接口类型的动态类型是会变化的，由被赋予的值来决定。
+接口类型变量除了静态类型之外还有动态类型，<font color='red'>动态类型是由给接口类型变量赋值的具体值的类型来决定的，除了动态类型之外还有动态值。</font>一个接口的值（简称接口值）是由<font color='red'>一个具体类型和具体类型的值</font>两部分组成的。这两部分分别称为接口的动态类型和动态值，之所以被称为动态类型，是因为接口类型的动态类型是会变化的，由被赋予的值来决定。
 
 ```go
 var w io.Writer
@@ -188,4 +186,129 @@ func justifyType(x interface{}) {
 	}
 }
 ```
+
+#### 鸭子类型
+
+许多编程语言都支持 Duck Typing ，通常 Duck Typing 是动态编程语言用来实现多态的一种方式。**它只关心事物的外部行为而非内部结构**。
+
+##### **Python 中的 Duck Typing**
+
+先看一个函数：
+
+```ruby
+def download(Retriever):
+     return Retriever.get("http://xxx");
+```
+
+有一个 download 函数，传过来一个 Retriever参数，Retriever是可以获取一个 url 链接的资源的。
+这个 Retriever就是一个 Duck Typing 的对象，使用者约定好这个 Retriever会有一个 get 函数就可以了。
+
+动态语言实现鸭子类型很方便,但是有两个小缺点
+
+1. 运行时才知道传入的 Retriever 有没有 get 方法
+2. 需要注释来说明接口(download 需要传入一个有 get 方法的对象)
+
+##### **C++ 中的 Duck Typing**
+
+C++ 不是动态语言，但是它也能支持 Duck Typing，它是通过模板来支持的。
+示例代码：
+
+```c++
+template <class R>
+string download(const R& Retriever){
+    return Retriever.get("http://xxxx")
+}
+```
+
+这段代码与 Python 的实现方法类似，这个 Retriever随便什么类型都可以，只要实现一个 get 方法，就能通过编译。
+那么这种实现方法有什么缺点呢，就是，<font color='red'>编译时，才知道传入的 Retriever有没有 get 方法。</font>
+但它比 python 好一点了，python 是运行时才知道，C++ 是编译时就知道。
+同样，这种情况，还是需要注释来说明。
+
+##### Java 中的 Duck Typing
+
+`Java`其实没有鸭子类型，只有类似的代码
+
+```java
+<R extends Retriever>
+String dowload(R r){
+    return r.get(url)
+```
+
+- 传入的参数必须实现Retriever接口
+
+传统的面向对象语言中，接口是实现者定义的。在`java`里，假如我有个`file`接口，里面又`read`和`write`两个方法，相当于告诉了别人，我有这两个方法，你怎么用我不管，但必须显示实现。 而`go`里接口是使用者定义的
+
+![img](https://upload-images.jianshu.io/upload_images/5317015-ee9a9378fc0b52ec.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/941/format/webp) 比如刚刚的 download 功能
+
+```go
+type Retriever interface {
+    Get(url string) string
+}
+
+func main() {
+    var r Retriever
+    fmt.Println(download(r))
+}
+```
+
+使用者定义了接口
+具体怎么实现的使用者不用管
+
+首先我们有一个 Retriever.go 这个包
+
+```go
+package mock
+
+import "fmt"
+
+type Retriever struct {
+    Contents string
+}
+
+/**
+语言本身并不需要说明,我继承了 Retriever 这个接口,我只要实现 get 方法就行了
+ */
+func (r Retriever) Get(url string) string {
+    return r.Contents + url
+}
+```
+
+`main` 包
+
+```go
+package main
+
+import (
+    "golearn/lesson9/mock"
+    "fmt"
+)
+
+type Retriever interface {
+    Get(url string) string
+}
+
+func download(r Retriever) string {
+    url := "abcd"
+    return r.Get(url)
+}
+
+func main() {
+    var r Retriever
+    r = mock.Retriever{"this is a fake mock"}
+    fmt.Println(download(r))
+        // this is a fake mockabcd
+}
+```
+
+接口的实现是隐式的,我只需要实现接口的方法就行了
+ 有一个注意的点
+ `r = mock.Retriever{"this is a fake mock"}`
+ 写成
+ `r = &mock.Retriever{"this is a fake mock"}`
+ 也就是说,传一个值过去也行,传一个指针过去也行,因为 Get 接收的是一个值,如果接收的是指针,就只能传指针
+
+- 接口变量自带指针
+- 接口变量同样采用值传递,几乎不需要使用接口的指针
+- 指针接收者只能接收指针,值接收者两者都可以
 
