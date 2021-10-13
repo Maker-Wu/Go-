@@ -7,3 +7,17 @@ Go语言对函数式编程主要是体现在闭包上面。
 - 函数是go语言中的一等公民，参数 变量 返回值都可以是函数
 
 ![image-20210818212326061](note.assets/image-20210818212326061.png)
+
+#### python中的闭包
+
+```python
+def adder():
+    sum = 0
+    def f(value):
+        nonlocal sum
+        sum += value
+        return sum
+    return f
+```
+
+ 
