@@ -17,4 +17,5 @@ import "fmt"
 func main() {
 	fmt.Println("Hello World")
 	C.sayHello()
+	fmt.Println()
 }

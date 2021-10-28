@@ -9,7 +9,7 @@ func Split(s, sep string) (result []string) {
 			result = append(result, s)
 			break
 		}
-		result = append(result, s[:i])		//string切片还是string
+		result = append(result, s[:i]) //string切片还是string
 		s = s[i+len(sep):]
 	}
 	return
