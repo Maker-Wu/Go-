@@ -423,7 +423,27 @@ func main() {
 
 - 可处理一个或多个channel的发送/接收操作。
 - 如果多个`case`同时满足，`select`会随机选择一个。
+- 如果所有 `case` 均阻塞，且定义了 `default` 模块，则执行 `default` 模块。若未定义 `default` 模块，则 select 语句阻塞，直到有 `case` 被唤醒。
 - 对于没有`case`的`select{}`会一直等待，可用于阻塞main函数。
+
+```go
+func main() {
+    intch := make(chan int, 1)
+    strch := make(chan string, 1)
+    intch <- 1
+    strch <- "Hello"
+    select {
+    case value := <-intch:
+        fmt.Println(value)
+    case value := <-strch:
+        fmt.Println(value)    
+    case <-time.After(time.Second * 5)
+        fmt.Println("超時")
+    }
+}
+```
+
+
 
 #### 并发安全和锁
 
@@ -640,5 +660,328 @@ func Icon(name string) image.Image {
 	loadIconsOnce.Do(loadIcons)
 	return icons[name]
 }
+```
+
+#### sync.Pool
+
+Pool 就是对象缓存池，用来减少堆上内存的反复申请和释放的。因为 golang 的内存是用户触发申请，runtime 负责回收。如果用户申请内存过于频繁，会导致 runtime 的回收压力陡增，从而影响整体性能。
+
+有了 sync.Pool 之后就不一样了，对象申请先看池子里有没有现成的，有就直接返回。释放的时候内存也不是直接归还，而是放进池子而已，适时释放。这样就能极大的减少申请内存的频率，从而减少 gc 压力。
+
+sync.Pool 是 golang 提供的对象重用的机制，sync.Pool 是可伸缩的，并发安全的。其大小仅受限于内存的大小，可以被看作是一个存放可重用对象的值的容器。设计的目的是存放已经分配的但是暂时不用的对象，在需要用到的时候直接从 pool 中取。
+
+##### **初始化 Pool 实例 New**
+
+第一个步骤就是创建一个 Pool 实例，关键一点是配置 New 属性，声明 Pool 元素创建的方法。
+
+```GO
+bufferPool := &sync.Pool {
+    New: func() interface {} {
+        fmt.Println("Create new instance")
+        return struct{}{}
+    }
+}
+```
+
+通过`New`去定义你这个池子里面放的究竟是什么东西，在这个池子里面你只能放一种类型的东西。
+
+##### 申请对象 Get
+
+```go
+buffer := bufferPool.Get()
+```
+
+`Get` 方法会返回 Pool 已经存在的对象，如果没有，那么就走慢路径，也就是调用初始化的时候定义的 New 方法（也就是最开始定义的初始化行为）来初始化一个对象。如果没有对 New 进行赋值，则返回 nil。
+
+##### 释放对象 Put
+
+```go
+bufferPool.Put(buffer)
+```
+
+使用对象之后，调用 Put 方法把对象放回池子。注意了，这个调用之后仅仅把这个对象放回池子，池子里面的对象啥时候真正释放外界是不清楚，是不受外部控制的。
+
+```go
+// 一个[]byte的对象池，每个对象为一个[]byte
+var bytePool = sync.Pool{
+  New: func() interface{} {
+    b := make([]byte, 512)
+    return &b
+  },
+}
+ 
+func main() {
+  a := time.Now().Unix()
+  // 不使用对象池
+  for i := 0; i < 1000000000; i++{
+    obj := make([]byte,512)
+    _ = obj
+  }
+  b := time.Now().Unix()
+  // 使用对象池
+  for i := 0; i < 1000000000; i++{
+    obj := bytePool.Get().(*[]byte)
+    _ = obj
+    bytePool.Put(obj)
+  }
+  c := time.Now().Unix()
+  fmt.Println("without pool ", b - a, "s")
+  fmt.Println("with    pool ", c - b, "s")
+}
+ 
+//without pool  0 s
+//with    pool  26 s
+```
+
+貌似使用池化，性能弱爆了？？？这似乎与net/http使用sync.pool池化Request来优化性能的选择相违背。这同时也说明了一个问题，好的东西，如果滥用反而造成了性能成倍的下降。在看过pool原理之后，结合实例，将给出正确的使用方法，并给出预期的效果
+
+##### sync.Pool 的实现
+
+为了使多个 goroutine 操作同一个 pool 做到高效，sync.Pool 为每一个 p 都分配了一个子池。当执行 get 或者put 操作时，会对当前 goroutine 挂载的子池操作。每个子池都有一个私有对象和共享列表对象，私有对象只有对应的 p 能够访问，因为同一个 p 同一时间只能操作执行一个 goroutine，因此对私有对象的操作不需要加锁；但共享列表是和其他 P 分享的，因此操作是需要加锁的。
+
+**获取对象的过程：**
+
+- 固定某个 P，尝试从私有对象中获取， 如果是私有对象则返回该对象，并把私有对象赋空。
+- 如果私有对象是空的，需要加锁，从当前固定的 p 的共享池中获取-并从该共享队列中删除这个对象。
+
+- 如果当前的子池都是空的，尝试去其他 P 的子池的共享列表偷取一个，如果用户没有注册New函数则返回nil。
+
+**归还对象的过程：**
+
+- 固定到某个 p，如果私有对象为空则放到私有对象。
+- 如果私有对象不为空，加锁，加入到该 P 子池的共享列表中。
+  
+
+##### 对象池的详细实现
+
+**对象池结构**
+
+```go
+type Pool struct {
+	noCopy noCopy            //防止copy
+ 
+	local     unsafe.Pointer //本地p缓存池指针
+	localSize uintptr        //本地p缓存池大小
+ 
+	//当池中没有对象时，会调用New函数调用一个对象
+	New func() interface{}
+}
+
+type poolLocal struct {  
+    private interface{}   // Can be used only by the respective P.  
+    shared  []interface{} // Can be used by any P.  
+    Mutex                 // Protects shared.  
+    pad     [128]byte     // Prevents false sharing.  
+}
+```
+
+local 成员的真实类型是一个 poolLocal 数组，localSize 是数组长度。这涉及到 Pool
+
+**获取对象池中的对象**
+
+```go
+func (p *Pool) Get() interface{} {
+	if race.Enabled {
+		race.Disable()
+	}
+        //获取本地的poolLocal对象
+	l := p.pin()
+ 
+        //先获取private池中的私有变量
+	x := l.private
+	l.private = nil
+	runtime_procUnpin()
+	if x == nil {
+                //查找本地的共享池，因为本地的共享池可能被其他p访问，所以要加锁
+		l.Lock()
+		last := len(l.shared) - 1
+		if last >= 0 {
+                        //如果本地共享池有对象，取走最后一个
+			x = l.shared[last]
+			l.shared = l.shared[:last]
+		}
+		l.Unlock()
+                //查找其他p的共享池
+		if x == nil {
+			x = p.getSlow()
+		}
+	}
+	if race.Enabled {
+		race.Enable()
+		if x != nil {
+			race.Acquire(poolRaceAddr(x))
+		}
+	}
+        //未找到其他可用元素，则调用New生成
+	if x == nil && p.New != nil {
+		x = p.New()
+	}
+	return x
+}
+```
+
+![img](https://img-blog.csdnimg.cn/20191219144553495.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM1NzAzODQ4,size_16,color_FFFFFF,t_70)
+
+**归还对象池中的对象**
+
+```go
+func (p *Pool) Put(x interface{}) {
+	if x == nil {
+		return
+	}
+	if race.Enabled {
+		if fastrand()%4 == 0 {
+			//1/4的概率会把该元素扔掉
+			return
+		}
+		race.ReleaseMerge(poolRaceAddr(x))
+		race.Disable()
+	}
+	l := p.pin()
+	if l.private == nil {
+                //赋值给私有变量
+		l.private = x
+		x = nil
+	}
+	runtime_procUnpin()
+	if x != nil {
+                //访问共享池加锁
+		l.Lock()
+		l.shared = append(l.shared, x)
+		l.Unlock()
+	}
+	if race.Enabled {
+		race.Enable()
+	}
+}
+```
+
+![img](F:\Users\WSQ\Go\src\Go-\github.com\Maker-Wu\studygo\day05\05_goroutine\note.assets\aHR0cDovL3R0Yy10YWwub3NzLWNuLWJlaWppbmcuYWxpeXVuY3MuY29tLzE1NzY2NzYyOTgvJUU2JTlDJUFBJUU1JTkxJUJEJUU1JTkwJThEJUU4JUExJUE4JUU1JThEJTk1JTIwJTI4NCUyOS5wbmc.png)
+
+#### sync.Cond
+
+sync.Cond 实现了一个条件变量，用于等待一个或一组 goroutines 满足条件后唤醒的场景。每个 Cond 关联一个 Locker 通常是一个 *Mutex 或 RWMutex 根据需求初始化不同的锁。
+
+条件等待和互斥锁有不同，互斥锁是不同协程共用一个锁，条件等待是不同协程各用一个锁，但是 wait() 方法会等待（阻塞）,直到有信号发过来
+
+使用场景：
+
+我需要完成一项任务，但是这项任务需要满足一定条件才可以执行，否则我就等着。
+那我可以怎么获取这个条件呢？一种是循环去获取，一种是条件满足的时候通知我就可以了。显然第二种效率高很多。
+通知的方式的话，golang 里面通知可以用 channe l的方式
+
+```go
+var mail = make(chan string)
+    go func() {
+        <- mail
+        fmt.Println("get chance to do something")
+    }()
+    time.Sleep(5*time.Second)
+    mail <- "moximoxi"
+```
+
+但是 channel 的方式还是比较适用于一对一的方式，一对多并不是很适合。下面就来介绍一下另一种方式：sync.Cond
+sync.Cond 就是用于实现条件变量的，是基于 sync.Mutex 的基础上，增加了一个通知队列，通知的线程会从通知队列中唤醒一个或多个被通知的线程。
+主要有以下几个方法：
+
+```go
+sync.NewCond(&mutex)：生成一个cond，需要传入一个mutex，因为阻塞等待通知的操作以及通知解除阻塞的操作就是基于sync.Mutex来实现的。
+sync.Wait()：用于等待通知
+sync.Signal()：用于发送单个通知
+sync.Broadcat()：用于广播
+```
+
+看到上面几个方法的源码
+
+```go
+var locker sync.Mutex
+var cond = sync.NewCond(&locker)
+// NewCond(l Locker)里面定义的是一个接口,拥有lock和unlock方法。
+// 看到sync.Mutex的方法,func (m *Mutex) Lock(),可以看到是指针有这两个方法,所以应该传递的是指针
+func main() {
+    for i := 0; i < 10; i++ {
+        go func(x int) {
+            cond.L.Lock()         // 获取锁
+            defer cond.L.Unlock() // 释放锁
+            cond.Wait()           // 等待通知，阻塞当前 goroutine
+            // 通知到来的时候, cond.Wait()就会结束阻塞, do something. 这里仅打印
+            fmt.Println(x)
+        }(i)
+    }
+    time.Sleep(time.Second * 1) // 睡眠 1 秒，等待所有 goroutine 进入 Wait 阻塞状态
+    fmt.Println("Signal...")
+    cond.Signal()               // 1 秒后下发一个通知给已经获取锁的 goroutine
+    time.Sleep(time.Second * 1)
+    fmt.Println("Signal...")
+    cond.Signal()               // 1 秒后下发下一个通知给已经获取锁的 goroutine
+    time.Sleep(time.Second * 1)
+    cond.Broadcast()            // 1 秒后下发广播给所有等待的goroutine
+    fmt.Println("Broadcast...")
+    time.Sleep(time.Second * 1) // 睡眠 1 秒，等待所有 goroutine 执行完毕
+
+}
+```
+
+上述代码实现了主线程对多个goroutine的通知的功能。
+抛出一个问题：
+主线程执行的时候，如果并不想触发所有的协程，想让不同的协程可以有自己的触发条件，应该怎么使用？
+下面就是一个具体的需求：
+有三个 worker 和一个 master，worker 等待 master 去分配指令，master 一直在计数，计数到 5 的时候通知第一个 worker，计数到 10 的时候通知第二个和第三个 worker 。
+首先列出几种解决方式
+1、所有worker循环去查看master的计数值，计数值满足自己条件的时候，触发操作 >>>>>>>>>弊端：无谓的消耗资源
+2、用 channel 来实现，几个 worker 几个 channel，eg: worker1 的协程里 <-channel(worker1) 进行阻塞，计数值到 5 的时候，给 worker1 的 channel 放入值，阻塞解除，worker1 开始工作。 >>>>>>>>弊端：channel 还是比较适用于一对一的场景，一对多的时候，需要起很多的 channel ，不是很美观
+3、用条件变量sync.Cond，针对多个worker的话，用broadcast，就会通知到所有的worker
+
+```go
+func main()  {
+    mutex := sync.Mutex{}
+    var cond = sync.NewCond(&mutex)
+    mail := 1
+    go func() {
+        for count := 0; count <= 15; count++ {
+            time.Sleep(time.Second)
+            mail = count
+            cond.Broadcast()
+        }
+    }()
+    // worker1
+    go func() {
+        for mail != 5 {          // 触发的条件，如果不等于5，就会进入cond.Wait()等待，此时cond.Broadcast()通知进来的时候，wait阻塞解除，进入下一个循环，此时发现mail != 5，跳出循环，开始工作。
+            cond.L.Lock()
+            cond.Wait()
+            cond.L.Unlock()
+        }
+        fmt.Println("worker1 started to work")
+        time.Sleep(3*time.Second)
+        fmt.Println("worker1 work end")
+    }()
+    // worker2
+    go func() {
+        for mail != 10 {
+            cond.L.Lock()
+            cond.Wait()
+            cond.L.Unlock()
+        }
+        fmt.Println("worker2 started to work")
+        time.Sleep(3*time.Second)
+        fmt.Println("worker2 work end")
+    }()
+    // worker3
+    go func() {
+        for mail != 10 {
+            cond.L.Lock()
+            cond.Wait()
+            cond.L.Unlock()
+        }
+        fmt.Println("worker3 started to work")
+        time.Sleep(3*time.Second)
+        fmt.Println("worker3 work end")
+    }()
+    select {
+
+    }
+}
+为什么每个worker里要使用for循环？而不是用if？
+首先broadcast的时候，会通知到所有的worker，此时wait都会解除，但并不是所有的worker都满足通知条件的，所以加一个for循环，不满足通知条件的会再次wait。
 ```
 
