@@ -590,6 +590,13 @@ func main() {
 
 在编程的很多场景下我们需要确保某些操作在高并发的场景下只执行一次，例如只加载一次配置文件、只关闭一次通道等。
 
+作用与 **init** 函数类似。但也有所不同。
+
+- **init** 函数是在文件包首次被加载的时候执行，且只执行一次
+- **sync.Once** 是在代码运行中需要的时候执行，且只执行一次
+
+当一个函数不希望程序在一开始的时候就被执行的时候，我们可以使用 **sync.Once** 。其最常应用于单例模式之下，例如初始化系统配置、保持数据库唯一连接等。
+
 Go语言中的`sync`包中提供了一个针对只执行一次场景的解决方案–`sync.Once`。
 
 `sync.Once`只有一个`Do`方法，其签名如下：
@@ -598,11 +605,91 @@ Go语言中的`sync`包中提供了一个针对只执行一次场景的解决方
 func (o *Once) Do(f func()) {}
 ```
 
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+)
+
+func main() {
+	var once sync.Once
+	onceBody := func() {
+		fmt.Println("Only once")
+	}
+	done := make(chan bool)
+	for i := 0; i < 10; i++ {
+		go func() {
+			once.Do(onceBody)
+			done <- true
+		}()
+	}
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+}
+
+# Output:
+Only once
+```
+
 *备注：如果要执行的函数`f`需要传递参数就需要搭配闭包来使用。*
+
+##### 代码实现
+
+**sync.Once** 使用变量 *done* 来记录函数的执行状态，使用 *sync.Mutex* 和 *sync.atomic* 来保证线程安全的读取 *done* 。Once 结构体非常简单，其中 done 是调用标识符，Once 对象初始化时，其 done 值默认为 0，Once 仅有一个 Do() 方法，当 Once 首次调用 Do() 方法后，done 值变为 1。m 作用于初始化竞态控制，在第一次调用 Once.Do() 方法时，会通过 m 加锁，以保证在第一个 Do() 方法中的参数 f() 函数还未执行完毕时，其他此时调用 Do() 方法会被阻塞（不返回也不执行）。
+
+```go
+package sync
+
+import (
+	"sync/atomic"
+)
+
+// Once is an object that will perform exactly one action.
+type Once struct {
+	m    Mutex
+	done uint32
+}
+
+// Do calls the function f if and only if Do is being called for the
+// first time for this instance of Once. In other words, given
+// 	var once Once
+// if once.Do(f) is called multiple times, only the first call will invoke f,
+// even if f has a different value in each invocation. A new instance of
+// Once is required for each function to execute.
+//
+// Do is intended for initialization that must be run exactly once. Since f
+// is niladic, it may be necessary to use a function literal to capture the
+// arguments to a function to be invoked by Do:
+// 	config.once.Do(func() { config.init(filename) })
+//
+// Because no call to Do returns until the one call to f returns, if f causes
+// Do to be called, it will deadlock.
+//
+// If f panics, Do considers it to have returned; future calls of Do return
+// without calling f.
+//
+func (o *Once) Do(f func()) {
+	if atomic.LoadUint32(&o.done) == 1 {
+		return
+	}
+	// Slow-path.
+	o.m.Lock()
+	defer o.m.Unlock()
+	if o.done == 0 {
+		defer atomic.StoreUint32(&o.done, 1)
+		f()
+	}
+}
+```
+
+Do() 方法的入参是一个无参数输入与返回的函数，当 o.done 值为 0 时，执行 doSlow() 方法，为1则退出 Do() 方法。doSlow() 方法很简单：加锁，再次检查 o.done 值，执行 f()，原子操作将  o.done 值置为1，最后释放锁。
 
 ##### 加载配置文件示例
 
-延迟一个开销很大的初始化操作到真正用到它的时候再执行是一个很好的实践。因为预先初始化一个变量（比如在init函数中完成初始化）会增加程序的启动耗时，而且有可能实际执行过程中这个变量没有用上，那么这个初始化操作就不是必须要做的。我们来看一个例子：
+延迟一个开销很大的初始化操作到真正用到它的时候再执行是一个很好的实践。因为预先初始化一个变量（比如在 init 函数中完成初始化）会增加程序的启动耗时，而且有可能实际执行过程中这个变量没有用上，那么这个初始化操作就不是必须要做的。我们来看一个例子：
 
 ```go
 var icons map[string]image.Image
@@ -625,7 +712,7 @@ func Icon(name string) image.Image {
 }
 ```
 
-多个`goroutine`并发调用Icon函数时不是并发安全的，现代的编译器和CPU可能会在保证每个`goroutine`都满足串行一致的基础上自由地重排访问内存的顺序。loadIcons函数可能会被重排为以下结果：
+多个 `goroutine` 并发调用 Icon 函数时不是并发安全的，现代的编译器和 CPU 可能会在保证每个`goroutine`都满足串行一致的基础上自由地重排访问内存的顺序。loadIcons 函数可能会被重排为以下结果：
 
 ```go
 func loadIcons() {
@@ -661,6 +748,29 @@ func Icon(name string) image.Image {
 	return icons[name]
 }
 ```
+
+#####  并发安全的单例
+
+```go
+package singleton
+
+import "sync"
+
+type singleton struct {}
+
+var once sync.Once
+var instance *singleton
+
+func getInstance() *singleton {
+	once.Do(func() {
+		instance = &singleton{}
+	})
+	return instance
+}
+
+```
+
+
 
 #### sync.Pool
 
@@ -860,7 +970,7 @@ func (p *Pool) Put(x interface{}) {
 
 #### sync.Cond
 
-sync.Cond 实现了一个条件变量，用于等待一个或一组 goroutines 满足条件后唤醒的场景。每个 Cond 关联一个 Locker 通常是一个 *Mutex 或 RWMutex 根据需求初始化不同的锁。
+sync.Cond 实现了一个条件变量，用于等待一个或一组 goroutines 满足条件后唤醒的场景。每个 Cond 关联一个 Locker 通常是一个 *Mutex 或 *RWMutex 根据需求初始化不同的锁。
 
 条件等待和互斥锁有不同，互斥锁是不同协程共用一个锁，条件等待是不同协程各用一个锁，但是 wait() 方法会等待（阻塞）,直到有信号发过来
 
@@ -983,5 +1093,74 @@ func main()  {
 }
 为什么每个worker里要使用for循环？而不是用if？
 首先broadcast的时候，会通知到所有的worker，此时wait都会解除，但并不是所有的worker都满足通知条件的，所以加一个for循环，不满足通知条件的会再次wait。
+```
+
+#### sync.Map
+
+Go语言中内置的map不是并发安全的。
+
+sync.Map 有以下特性：
+
+- 无须初始化，直接声明即可。
+- sync.Map 不能使用 map 的方式进行取值和设置等操作，而是使用 sync.Map 的方法进行调用，Store表示存储，Load表示获取，Delete 表示删除。
+- 使用 Range 配合一个回调函数进行遍历操作，通过回调函数返回内部遍历出来的值， Range参数中回调函数的返回值在需要继续迭代遍历时，返回 true，终止迭代遍历时，返回 false
+
+请看下面的示例：
+
+```go
+var m = make(map[string]int)
+
+func get(key string) int {
+	return m[key]
+}
+
+func set(key string, value int) {
+	m[key] = value
+}
+
+func main() {
+	wg := sync.WaitGroup{}
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(n int) {
+			key := strconv.Itoa(n)
+			set(key, n)
+			fmt.Printf("k=:%v,v:=%v\n", key, get(key))
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+}
+```
+
+上面的代码开启少量几个 `goroutine` 的时候可能没什么问题，当并发多了之后执行上面的代码就会报`fatal error: concurrent map writes`错误。
+
+像这种场景下就需要为 map 加锁来保证并发的安全性了，Go 语言的 `sync` 包中提供了一个开箱即用的并发安全版 map–`sync.Map`。开箱即用表示不用像内置的map一样使用make函数初始化就能直接使用。同时`sync.Map`内置了诸如`Store`、`Load`、`LoadOrStore`、`Delete`、`Range`等操作方法。
+
+```go
+var m = sync.Map{}
+
+func main() {
+	wg := sync.WaitGroup{}
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func(n int) {
+			key := strconv.Itoa(n)
+			m.Store(key, n)
+			value, _ := m.Load(key)
+			fmt.Printf("k=:%v,v:=%v\n", key, value)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+}
+```
+
+##### 迭代遍历
+
+简单的使用例子：
+
+```go
+
 ```
 
