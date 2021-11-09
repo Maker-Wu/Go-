@@ -18,7 +18,8 @@ func main() {
 		Weight: 71.5,
 	}
 	// struct -> json string
-	b, err := json.Marshal(p1)
+	//b, err := json.Marshal(p1)
+	b, err := json.MarshalIndent(p1, "", "    ")
 	if err != nil {
 		fmt.Printf("json.Marshal failed, err:%v\n", err)
 		return

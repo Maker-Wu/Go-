@@ -1,4 +1,24 @@
-#### 读取文件
+## 打开文件
+
+通过如下两个方法来打开文件：
+
+```go
+//该方法打开一个名称为name的文件，但是是只读方式，内部实现其实调用了OpenFile。
+func Open(name string) (file *File, err Error)
+```
+
+Open() 是以只读权限打开文件名为 name 的文件，得到文件指针，只能用来对文件进行”读“操作，如果有”写“文件的需求，就需要借助 OpenFile 函数。
+
+```go
+// 打开名称为name的文件，flag是打开的方式，只读、读写等，perm是权限
+func OpenFile(name string, flag int, perm uint32) (file *File, err Error)
+```
+
+参数介绍：
+
+
+
+## 读取文件
 
 ```go
 func (f *File) Read(b []byte) (n int, err error)
@@ -38,7 +58,7 @@ func main() {
 
 
 
-#### 文件写入操作
+## 文件写入操作
 
 `os.OpenFile()`函数能够以指定模式打开文件，从而实现文件写入相关功能。
 
